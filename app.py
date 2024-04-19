@@ -39,15 +39,17 @@ try:
     """)
 
     households_query = "SELECT * FROM households"
-    transactions_query = "SELECT * FROM transactions"
+    transactions_query = "SELECT TOP 30000 * FROM transactions"
     products_query = "SELECT * FROM products"
 
     households_df = pd.read_sql(households_query, cnxn)
     transactions_df = pd.read_sql(transactions_query, cnxn)
     products_df = pd.read_sql(products_query, cnxn)
 
-    merged_df = pd.merge(households_df, transactions_df, on='HSHD_NUM')
-    merged_df = pd.merge(merged_df, products_df, on='PRODUCT_NUM')
+    merged_df = pd.merge(households_df, transactions_df, on='HSHD_NUM', how='inner')
+    merged_df = pd.merge(merged_df, products_df, on='PRODUCT_NUM', how='inner')
+
+
     print("Database connection successful!")
 
 except Exception as e:
@@ -123,18 +125,24 @@ def search_data():
 
         if not hshd_num:
             hshd_num = 10
-
-     
+            
+        print(merged_df)
         filtered_df = merged_df[merged_df['HSHD_NUM'] == int(hshd_num)]
 
- 
+       
+        columns_to_keep = ['HSHD_NUM', 'BASKET_NUM', 'PURCHASE', 'PRODUCT_NUM', 'DEPARTMENT', 'COMMODITY', 'SPEND', 'UNITS', 'STORE_R', 'WEEK_NUM', 'YEAR', "L", 'AGE_RANGE', "MARITAL", "INCOME_RANGE", "HOMEOWNER", "HSHD_COMPOSITION", "HH_SIZE", "CHILDREN"] 
+
+      
+        filtered_df = filtered_df[columns_to_keep]
+
+        filtered_df = filtered_df.dropna(subset=['DEPARTMENT', 'COMMODITY'])
+
         sorted_df = filtered_df.sort_values(by=['HSHD_NUM', 'BASKET_NUM', 'PURCHASE', 'PRODUCT_NUM', 'DEPARTMENT', 'COMMODITY'])
 
-   
-        columns_order = ['HSHD_NUM', 'BASKET_NUM', 'PURCHASE', 'PRODUCT_NUM', 'DEPARTMENT', 'COMMODITY'] + [col for col in sorted_df.columns if col not in ['HSHD_NUM', 'BASKET_NUM', 'PURCHASE', 'PRODUCT_NUM', 'DEPARTMENT', 'COMMODITY']]
-        sorted_df = sorted_df[columns_order]
+        sorted_df['DEPARTMENT'] = sorted_df['DEPARTMENT'].str.strip()
+        sorted_df['COMMODITY'] = sorted_df['COMMODITY'].str.strip()
 
-   
+      
         html_table = sorted_df.to_html(index=False)
 
     
@@ -146,7 +154,7 @@ def search_data():
         </form>
         """
 
-   
+  
         upload_form = '''
         <form action="/upload" method="post" enctype="multipart/form-data">
             <input type="file" name="file" accept=".csv, .xlsx, .xls">
@@ -154,7 +162,7 @@ def search_data():
         </form>
         '''
 
-    
+     
         html_response = f"""
         <!DOCTYPE html>
         <html lang="en">
@@ -180,6 +188,7 @@ def search_data():
         return "Error: " + str(e)
 
 
+
 @app.route('/upload', methods=['POST'])
 def upload_file():
     global transactions_df, households_df, products_df, merged_df
@@ -202,18 +211,34 @@ def upload_file():
             elif 'xls' in filename or 'xlsx' in filename:
                 upload_df = pd.read_excel(file)
 
+            upload_df = upload_df.head(50000)
+            
+            upload_df.columns = upload_df.columns.str.strip()
             if 'transaction' in filename:
-                transactions_df = update_dataframe(transactions_df, upload_df)
+                # transactions_df = pd.concat([transactions_df, upload_df], axis=0)
+                # transactions_df = transactions_df.drop_duplicates().head(30000)
+                transactions_df = upload_df
+                print(upload_df)
+                print(upload_df.columns)
             elif 'household' in filename:
-                households_df = update_dataframe(households_df, upload_df)
+                # households_df = pd.concat([households_df, upload_df], axis=0, ignore_index=True)
+                # households_df = households_df.drop_duplicates()
+                households_df = upload_df
+                print(upload_df.columns)
             elif 'product' in filename:
-                products_df = update_dataframe(products_df, upload_df)
+                # products_df = pd.concat([products_df, upload_df], axis=0, ignore_index=True)
+                # products_df = products_df.drop_duplicates()
+                products_df = upload_df
+                print(upload_df.columns)
 
-     
-            merged_df = pd.merge(households_df, transactions_df, on='HSHD_NUM')
-            merged_df = pd.merge(merged_df, products_df, on='PRODUCT_NUM')
+            # Update merged_df after concatenating new dataframes
+            merged_df = pd.merge(households_df, transactions_df, on='HSHD_NUM', how='inner')
+            merged_df = pd.merge(merged_df, products_df, on='PRODUCT_NUM', how='inner')
+            merged_df = merged_df.rename(columns={'PURCHASE_': 'PURCHASE'})
 
-     
+            merged_df.columns = merged_df.columns.str.strip()
+            merged_df = merged_df.loc[:, ~merged_df.columns.duplicated()]
+         
             flash('File uploaded successfully')
             return redirect(url_for('search_data'))
         except Exception as e:
@@ -221,16 +246,6 @@ def upload_file():
             return redirect(request.url)
 
     return redirect(request.url)
-
-def update_dataframe(existing_df, new_df):
-
-    common_columns = existing_df.columns.intersection(new_df.columns)
-    new_df = new_df[common_columns]
-    
-
-    updated_df = pd.concat([existing_df, new_df], axis=0).drop_duplicates()
-    
-    return updated_df
 
 
 
