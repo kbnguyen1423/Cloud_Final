@@ -20,11 +20,10 @@ households_df = pd.DataFrame()
 products_df = pd.DataFrame()
 merged_df = pd.DataFrame()
 
+
+cnxn = pyodbc.connect(f'DRIVER={driver};SERVER={server};DATABASE={database};UID={username};PWD={password}')
+cursor = cnxn.cursor()
 try:
-
-    cnxn = pyodbc.connect(f'DRIVER={driver};SERVER={server};DATABASE={database};UID={username};PWD={password}')
-    cursor = cnxn.cursor()
-
 
     cursor.execute("""
         IF NOT EXISTS (SELECT * FROM sys.tables WHERE name='users')
