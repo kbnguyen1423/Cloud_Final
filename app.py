@@ -38,7 +38,7 @@ try:
     """)
 
     households_query = "SELECT * FROM households"
-    transactions_query = "SELECT TOP 20000 * FROM transactions"
+    transactions_query = "SELECT TOP 10000 * FROM transactions"
     products_query = "SELECT * FROM products"
 
     households_df = pd.read_sql(households_query, cnxn)
@@ -210,7 +210,7 @@ def upload_file():
             elif 'xls' in filename or 'xlsx' in filename:
                 upload_df = pd.read_excel(file)
 
-            upload_df = upload_df.head(20000)
+            upload_df = upload_df.head(10000)
             
             upload_df.columns = upload_df.columns.str.strip()
             if 'transaction' in filename:
