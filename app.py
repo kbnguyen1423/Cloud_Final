@@ -125,7 +125,7 @@ def search_data():
         if not hshd_num:
             hshd_num = 10
             
-        print(merged_df)
+        # print(merged_df)
         filtered_df = merged_df[merged_df['HSHD_NUM'] == int(hshd_num)]
 
        
@@ -210,12 +210,13 @@ def upload_file():
             elif 'xls' in filename or 'xlsx' in filename:
                 upload_df = pd.read_excel(file)
 
-            upload_df = upload_df.head(10000)
+            # upload_df = upload_df.head(100000)
             
             upload_df.columns = upload_df.columns.str.strip()
             if 'transaction' in filename:
                 # transactions_df = pd.concat([transactions_df, upload_df], axis=0)
                 # transactions_df = transactions_df.drop_duplicates().head(30000)
+                upload_df = upload_df.head(10000)
                 transactions_df = upload_df
                 print(upload_df)
                 print(upload_df.columns)
@@ -228,7 +229,8 @@ def upload_file():
                 # products_df = pd.concat([products_df, upload_df], axis=0, ignore_index=True)
                 # products_df = products_df.drop_duplicates()
                 products_df = upload_df
-                print(upload_df.columns)
+                print(products_df)
+                print(upload_df)
 
             # Update merged_df after concatenating new dataframes
             merged_df = pd.merge(households_df, transactions_df, on='HSHD_NUM', how='inner')
