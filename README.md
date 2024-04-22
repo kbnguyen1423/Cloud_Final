@@ -1,5 +1,7 @@
 # Cloud_Final
 
+Website URL: https://cloud-final.azurewebsites.net/
+
 ## Sign Up Page
 1. Sign in using email, username, password. You will be redirected to the login page.
 
